@@ -1,21 +1,25 @@
-import SimpleHTTPServer, SocketServer
-from urlparse import urlparse, parse_qs
+import http.server, socketserver
+from urllib.parse import urlparse, parse_qs
 import subprocess
+from subprocess import Popen, PIPE, STDOUT
+from pathlib import Path
 
-class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
+        print("anfrage")
         if self.path.startswith("/tasks"):
-            query_components = parse_qs(urlparse(self.path).query)
-            cmd = ["task", "export"]
-            if "filter" in query_components:
-                filter_param = query_components.get("filter")[0]
-                cmd.append(filter_param)
-            output = subprocess.Popen(cmd, stdout=subprocess.PIPE).communicate()[0]
-            self.wfile.write(output)             
+            output = subprocess.Popen([r"C:\Program Files (x86)\bin\bash.exe", '-c', '. /etc/profile; task export'], stdout=PIPE, stderr=STDOUT).communicate()[0]
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(output)
         else:
-            SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
+            http.server.SimpleHTTPRequestHandler.do_GET(self)
 
+
+PORT = 9001
 handler = Handler
-server = SocketServer.TCPServer(("", 9001), handler)
-server.serve_forever()
 
+with socketserver.TCPServer(("", PORT), handler) as httpd:
+    print("serving at port", PORT)
+    print(http.server.__file__)
+    httpd.serve_forever()

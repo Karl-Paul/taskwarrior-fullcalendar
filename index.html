@@ -13,28 +13,45 @@
         timeout = null,
         createEvents = function(task) {
           var events = [];
-          if (task['due']) {
-            events.push({'title': task['description'],
-                         'start': task['due'],
-                         'color': '#ffcc00'});
-	 	      }
-          if (task['scheduled']) {
-            events.push({'title': task['description'],
-                         'start': task['scheduled'],
-                         'color': '#257e4a'});
- 		      }
-          return events;
+          if(task.status == "pending"){
+            event = {
+              'title': task['description'],
+              'extendedProps': {
+                task: task
+              }
+            };
+
+            if (task['due']) {
+              event.start = task['due'];
+              event.color = '#ffcc00'};
+            }
+
+            if (task['scheduled']) {
+              event.start = task['scheduled'];
+              event.color = '#257e4a';
+            }
+
+            if(event.start){
+              events.push(event);
+            }
+
+            return events;
         },
         updateCalendar = function() {
           var filter = $("#input-filter").val(),
               url = filter ? "/tasks?filter=" + encodeURIComponent(filter) : "/tasks";
+          console.log(url);
           $.getJSON(url, function(tasks) {
+            console.log(tasks);
             var events = [].concat(...tasks.map(createEvents));
             cal.fullCalendar('removeEventSources');
             cal.fullCalendar('addEventSource', events);
             timeout = setTimeout(function() {
               updateCalendar();
             }, refreshInterval);
+          }
+          ).fail(function(jqXHR, textStatus, errorThrown){
+            console.log('getJSON request failed! ' + textStatus);
           });
         };
 
@@ -51,9 +68,13 @@
       },
       firstDay: 1,
       businessHours: true,
-      editable: false
+      editable: false,
+      eventClick: function(event) {
+        alert('Id: ' + event.extendedProps.task['id'] + '\n' +
+          'Title: ' + event.title + '\n' +
+          'Project: ' + event.extendedProps.task['project']);
+      }
     });
-
     updateCalendar();
   });
 </script>
